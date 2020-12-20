@@ -207,7 +207,7 @@ class TotalList(ManualListView):
 		)
 		map_attente = Tac.get_map(self)
 		cursor = db_list.cursor()
-		if map_attente:
+		if map_attente != -1:
 			query = "SELECT login, nickname, SUM(COALESCE(score, (SELECT min(score) FROM localrecord AS lr2 WHERE lr2.map_id = map.id)*2)) AS total FROM map JOIN player LEFT JOIN localrecord AS lr1 ON lr1.player_id = player.id AND lr1.map_id = map.id WHERE player.id IN (SELECT player_id FROM localrecord WHERE localrecord.map_id != "+str(map_attente)+") AND map.id !="+str(map_attente)+" GROUP BY nickname ORDER BY total ASC"
 		else:
 			query = "SELECT login, nickname, SUM(COALESCE(score, (SELECT min(score) FROM localrecord AS lr2 WHERE lr2.map_id = map.id)*2)) AS total FROM map JOIN player LEFT JOIN localrecord AS lr1 ON lr1.player_id = player.id AND lr1.map_id = map.id WHERE player.id IN (SELECT player_id FROM localrecord) GROUP BY nickname ORDER BY total ASC"
@@ -246,7 +246,7 @@ class TotalList(ManualListView):
 			player_index_query = 'SELECT id FROM `player` WHERE login=\'' + str(login) + '\''
 			cursor3.execute(player_index_query)
 			player_id = cursor3.fetchall()
-			if map_attente:
+			if map_attente != -1:
 				map_count_query = 'SELECT COUNT(*) FROM localrecord WHERE player_id=' + str(player_id[0][0]) + ' AND map_id != ' + str(map_attente)
 			else:
 				map_count_query = 'SELECT COUNT(*) FROM localrecord WHERE player_id=' + str(player_id[0][0])

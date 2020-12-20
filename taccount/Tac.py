@@ -3,8 +3,6 @@ from pyplanet.apps.core.maniaplanet.callbacks.player import player_chat
 from pyplanet.contrib.command import Command
 import mysql.connector
 from pyplanet.conf import settings
-global map_attente
-map_attente = ""
 
 
 class Tac( ServerAdmin ):
@@ -16,17 +14,14 @@ class Tac( ServerAdmin ):
 		self.db_process = self.instance.process_name
 		self.prev_map = ""
 		self.waitingmap = ""
+		self.waitingmap_id = -1
 		self.DB_NAME = settings.DATABASES[self.db_process]['NAME']
 		self.DB_IP = settings.DATABASES[self.db_process]['OPTIONS']['host']
 		self.DB_LOGIN = settings.DATABASES[self.db_process]['OPTIONS']['user']
 		self.DB_PASSWORD = settings.DATABASES[self.db_process]['OPTIONS']['password']
 	
 	def get_map(self):
-		global map_attente
-		if map_attente:
-			return map_attente
-		else:
-			return
+		return self.app.tac.waitingmap_id 
 	
 	def get_current_map(self):
 		return self.instance.map_manager.current_map.name
@@ -72,7 +67,7 @@ class Tac( ServerAdmin ):
 		cursor3.execute(query)
 		map_data = cursor3.fetchall()
 		global map_attente
-		map_attente = int(map_data[0][0])
+		self.waitingmap_id = int(map_data[0][0])
 		self.app.widget.map_count = 0
 		await self.app.refresh_widget()
 		return
@@ -125,8 +120,8 @@ class Tac( ServerAdmin ):
 		player_spot = 0
 		toprange = 0
 		cursor = db.cursor()
-		if map_attente:
-			query = "SELECT nickname, sum(COALESCE(score, (SELECT min(score) FROM localrecord AS lr2 WHERE lr2.map_id = map.id)*2)) as total FROM map JOIN player LEFT JOIN localrecord AS lr1 ON lr1.player_id = player.id AND lr1.map_id = map.id WHERE map.id != " + str(map_attente) + " GROUP BY nickname ORDER BY total ASC"
+		if self.waitingmap_id != -1:
+			query = "SELECT nickname, sum(COALESCE(score, (SELECT min(score) FROM localrecord AS lr2 WHERE lr2.map_id = map.id)*2)) as total FROM map JOIN player LEFT JOIN localrecord AS lr1 ON lr1.player_id = player.id AND lr1.map_id = map.id WHERE map.id != " + str(self.waitingmap_id) + " GROUP BY nickname ORDER BY total ASC"
 		else:
 			query = "SELECT nickname, sum(COALESCE(score, (SELECT min(score) FROM localrecord AS lr2 WHERE lr2.map_id = map.id)*2)) as total FROM map JOIN player LEFT JOIN localrecord AS lr1 ON lr1.player_id = player.id AND lr1.map_id = map.id GROUP BY nickname ORDER BY total ASC"
 		cursor.execute(query)
