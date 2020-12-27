@@ -66,7 +66,7 @@ class Tac( ServerAdmin ):
 		cursor3 = inutile_db.cursor()
 		cursor3.execute(query)
 		map_data = cursor3.fetchall()
-		global map_attente
+		self.app.whitelist = []
 		self.waitingmap_id = int(map_data[0][0])
 		self.app.widget.map_count = 0
 		await self.app.refresh_widget()
