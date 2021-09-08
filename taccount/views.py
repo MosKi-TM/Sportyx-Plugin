@@ -1,5 +1,6 @@
 import math
 
+import logging
 from pyplanet.utils.style import style_strip
 from pyplanet.utils.times import format_time
 from pyplanet.views.generics.widget import TimesWidgetView
@@ -20,6 +21,8 @@ class TotalTimeWidget(TimesWidgetView):
 	size_y = 55.5
 	top_entries = 5
 	title = 'Total Time'
+
+	template_name = 'taccount/widget.xml'
 
 	def __init__(self, app):
 		super().__init__(app.context.ui)
@@ -83,7 +86,8 @@ class TotalTimeWidget(TimesWidgetView):
 			for login, nickname, total in self.datas[:5]:
 				list_record = dict()
 				list_record['index'] = index	
-				list_record['color'] = '$ff0'				
+				list_record['color'] = '$ff0'		
+				list_record['login'] = login		
 				if login == player_index:
 					list_record['color'] = '$0f3'
 				list_record['nickname'] = nickname
@@ -103,6 +107,7 @@ class TotalTimeWidget(TimesWidgetView):
 				list_record = dict()
 				list_record['index'] = index
 				list_record['color'] = '$fff'
+				list_record['login'] = login
 				if login == player_index:
 					list_record['color'] = '$0f3'
 				list_record['nickname'] = nickname
@@ -118,6 +123,16 @@ class TotalTimeWidget(TimesWidgetView):
 		
 	async def action_recordlist(self, player, **kwargs):
 		await self.app.show_records_list(player)
+	
+	async def handle_catch_all(self, player, action, values, **kwargs):
+		logging.debug("CatchAll: " + player.login + ": " + action)
+		if str(action).startswith('spec_'):
+			target = action[5:]
+			if target in self.instance.player_manager.online_logins:
+				await self.app.spec_player(player=player, target_login=target)
+			else:
+				target_player = await self.instance.player_manager.get_player(login=target, lock=False)
+				await self.instance.chat(f'$FF0{target_player.nickname} is not on the server! Can\'t spectate him', player.login)
 		
 class TotalList(ManualListView):
 	title = 'Total Time'
@@ -173,11 +188,34 @@ class TotalList(ManualListView):
 		self.instance = app.instance
 		self.db_process = self.instance.process_name
 		self.datas = []
+		self.actions = self._create_actions()
 		self.cooldown = 0
 		self.DB_NAME = settings.DATABASES[self.db_process]['NAME']
 		self.DB_IP = settings.DATABASES[self.db_process]['OPTIONS']['host']
 		self.DB_LOGIN = settings.DATABASES[self.db_process]['OPTIONS']['user']
 		self.DB_PASSWORD = settings.DATABASES[self.db_process]['OPTIONS']['password']
+		
+	def _create_actions(self):
+		return [
+			dict(
+				name='spec_player',
+				action=self.spec_player,
+				text='&#xf03d;',
+				textsize=1.2,
+				safe=True,
+				type='label',
+				order=0,
+				require_confirm=False,
+			)
+		]
+	
+	async def spec_player(self, player, values, data, **kwargs):
+		logging.debug("CatchAll: " + player.login + ": " + data['login'])
+		if data['login'] in self.instance.player_manager.online_logins:
+			await self.app.spec_player(player=player, target_login=data['login'])
+			await self.hide(player_logins=[player.login])
+		else:
+			await self.instance.chat(f'$FF0{data["player_nickname"]} is not on the server! Can\'t spectate him', player.login)
 		
 	async def ms_time(self, time):
 		if len(str(time)) == 0:

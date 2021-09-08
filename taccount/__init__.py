@@ -5,6 +5,7 @@ from pyplanet.apps.core.maniaplanet import callbacks as mp_signals
 from pyplanet.contrib.command import Command
 from .views import TotalTimeWidget, TotalList
 import time
+import logging
 
 class TacConfig(AppConfig):
     app_dependencies = ['core.maniaplanet']
@@ -93,5 +94,12 @@ class TacConfig(AppConfig):
     
         await  DifferenceList(self, data['login']).display(player=player.login)
         return 
+    
+    async def spec_player(self, player, target_login):
+        logging.debug(player.login + ' will now spec ' + target_login)
+        logging.debug(await self.instance.gbx.multicall(
+            await self.instance.gbx('ForceSpectator', player.login, 3),
+            self.instance.gbx('ForceSpectatorTarget', player.login, target_login, -1)
+        ))
         
         
