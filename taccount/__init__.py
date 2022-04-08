@@ -15,7 +15,6 @@ class TacConfig(AppConfig):
         self.tac = Tac(self)
         self.widget = TotalTimeWidget(self)
         self.cooldown = 0
-        self.whitelist = []
         self.dedimania_enabled = False
 
 
@@ -24,7 +23,6 @@ class TacConfig(AppConfig):
             Command(command='tops', target=self.show_records_list)
         )
         self.context.signals.listen(mp_signals.map.map_end , self.map_end)
-        self.context.signals.listen(mp_signals.map.map_start , self.map_start)
         self.context.signals.listen(mp_signals.player.player_connect, self.player_connect)
         self.dedimania_enabled = ('dedimania' in self.instance.apps.apps and 'dedimania' not in self.instance.apps.unloaded_apps)
         await self.tac.on_start()
@@ -41,8 +39,6 @@ class TacConfig(AppConfig):
         await TotalList(self).Refresh_scores()
         await self.widget.Refresh_scores()
         
-        if self.tac.get_current_map() == self.tac.waitingmap:
-            await self.lock_server()
 
         for player in self.instance.player_manager.online:
             TotalTimeWidget.get_player(str(player))
@@ -50,33 +46,12 @@ class TacConfig(AppConfig):
         
         self.tac.prev_map = self.tac.get_current_map()
 
-
-    async def map_start(self, map, **kwargs):
-        
-        if self.tac.get_current_map() == self.tac.waitingmap:
-            await self.unlock_server()
-
-    async def lock_server(self):
-        self.whitelist = []
-        
-        for player in self.instance.player_manager.online:
-            self.whitelist.append(player.login)
-
-    async def unlock_server(self):
-        self.whitelist = []
-
     async def refresh_widget(self, **kwargs):
         for player in self.instance.player_manager.online:
             TotalTimeWidget.get_player(str(player))
             await self.widget.display(player=player)
 
     async def player_connect(self, player, is_spectator, source, signal):
-        if self.tac.get_current_map() != self.tac.waitingmap:
-            if player.level == 0:	
-                if self.whitelist != []:
-                    if player.login not in self.whitelist:
-                        await self.instance.gbx('Kick', player.login)
-        
         TotalTimeWidget.get_player(str(player))
         await self.widget.display(player=player)
 
